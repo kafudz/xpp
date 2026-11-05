@@ -1,14 +1,20 @@
 #ifndef XPP_GENERIC_ERROR_HPP
 #define XPP_GENERIC_ERROR_HPP
 
-#include <iostream> // shared_ptr
+#include <iostream> // kept: downstream code relies on it transitively
 #include <memory> // shared_ptr
+#include <stdexcept> // runtime_error
+#include <string> // std::string, std::to_string
+#include <type_traits> // std::is_base_of
 #include <xcb/xcb.h> // xcb_generic_error_t
 
 namespace xpp { namespace generic {
 
 class error_dispatcher {
   public:
+    virtual
+    ~error_dispatcher(void) {}
+
     virtual
       void operator()(const std::shared_ptr<xcb_generic_error_t> &) const = 0;
 };

@@ -8,7 +8,7 @@
 #include <X11/keysym.h> // XK_Escape
 #include <X11/cursorfont.h> // XC_cross
 
-#include "../xpp.hpp"
+#include <xpp/xpp.hpp>
 
 // global variable to indicate whether the event loop should exit
 bool g_quit = false;

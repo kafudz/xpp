@@ -1,4 +1,4 @@
-include ../../include/flags.makefile
+include ../../include/xpp/flags.makefile
 
 CXXFLAGS+=-g
 CXXFLAGS+=-Wextra

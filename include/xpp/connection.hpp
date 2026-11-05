@@ -49,7 +49,7 @@ class connection
       , Extensions(static_cast<xcb_connection_t *>(*this)) ...
       , Extensions::error_dispatcher(static_cast<Extensions &>(*this).get()) ...
     {
-      m_root_window = screen_of_display(default_screen())->root;
+      m_root_window = lookup_root_window();
     }
 
     virtual
@@ -125,6 +125,20 @@ class connection
   private:
     xcb_window_t m_root_window;
 
+    // Throws instead of dereferencing a null screen when the connection
+    // failed or the requested screen does not exist.
+    xcb_window_t
+    lookup_root_window(void) const
+    {
+      check_connection();
+      const xcb_screen_t * screen = screen_of_display(default_screen());
+      if (screen == nullptr) {
+        throw std::runtime_error("no such screen: "
+                                 + std::to_string(default_screen()));
+      }
+      return screen->root;
+    }
+
     template<typename Extension, typename Next, typename ... Rest>
     void
     check(const std::shared_ptr<xcb_generic_error_t> & error) const
@@ -149,7 +163,7 @@ connection<>::connection(Parameters && ... parameters)
   : xpp::core::core(std::forward<Parameters>(parameters) ...)
   , detail::interfaces<connection<>>(*this)
 {
-  m_root_window = screen_of_display(static_cast<core &>(*this).default_screen())->root;
+  m_root_window = lookup_root_window();
 }
 
 } // namespace xpp

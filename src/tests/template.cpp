@@ -1,4 +1,5 @@
 // compile with `g++ -std=c++11 test.cpp`
+#include <cstdint>
 #include <iostream>
 
 #define CALLABLE(FUNCTION) callable<decltype(FUNCTION), FUNCTION>

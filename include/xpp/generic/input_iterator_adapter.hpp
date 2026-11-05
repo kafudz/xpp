@@ -51,13 +51,13 @@ struct value_iterator_base {
   {}
 
   bool
-  operator==(const value_iterator_base & other)
+  operator==(const value_iterator_base & other) const
   {
     return m_iterator == other.m_iterator;
   }
 
   bool
-  operator!=(const value_iterator_base & other)
+  operator!=(const value_iterator_base & other) const
   {
     return m_iterator != other.m_iterator;
   }
@@ -88,15 +88,14 @@ struct value_iterator_base {
 template<typename Iterator>
 struct value_iterator_pair
   : public value_iterator_base<Iterator>
-  , public std::iterator<typename std::input_iterator_tag,
-                         // value_type
-                         typename Iterator::value_type::second_type,
-                         typename std::iterator_traits<Iterator>::difference_type,
-                         // pointer
-                         typename Iterator::value_type::second_type *,
-                         // reference
-                         const typename Iterator::value_type::second_type &>
 {
+  // std::iterator is deprecated since C++17, define the traits directly
+  using iterator_category = std::input_iterator_tag;
+  using value_type        = typename Iterator::value_type::second_type;
+  using difference_type   = typename std::iterator_traits<Iterator>::difference_type;
+  using pointer           = typename Iterator::value_type::second_type *;
+  using reference         = const typename Iterator::value_type::second_type &;
+
   typedef value_iterator_base<Iterator> base;
   using base::base;
 
@@ -110,12 +109,14 @@ struct value_iterator_pair
 template<typename Iterator>
 struct value_iterator_integral
   : public value_iterator_base<Iterator>
-  , public std::iterator<typename std::input_iterator_tag,
-                         typename std::iterator_traits<Iterator>::value_type,
-                         typename std::iterator_traits<Iterator>::difference_type,
-                         typename std::iterator_traits<Iterator>::pointer,
-                         typename std::iterator_traits<Iterator>::reference>
 {
+  // std::iterator is deprecated since C++17, define the traits directly
+  using iterator_category = std::input_iterator_tag;
+  using value_type        = typename std::iterator_traits<Iterator>::value_type;
+  using difference_type   = typename std::iterator_traits<Iterator>::difference_type;
+  using pointer           = typename std::iterator_traits<Iterator>::pointer;
+  using reference         = typename std::iterator_traits<Iterator>::reference;
+
   typedef value_iterator_base<Iterator> base;
   using base::base;
 

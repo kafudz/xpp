@@ -1,4 +1,4 @@
-include ../../include/flags.makefile
+include ../../include/xpp/flags.makefile
 
 # CXX=clang
 CXXFLAGS+=-g
@@ -12,7 +12,7 @@ CPPSRCS=event.cpp \
 all: ${CPPSRCS}
 
 ${CPPSRCS}:
-	${CXX} ${LDFLAGS} ${CXXFLAGS} -o $(@:%.cpp=%) $@
+	${CXX} ${CXXFLAGS} -o $(@:%.cpp=%) $@ ${LDLIBS}
 
 xlib-test: xlib-test.cpp
 	${CXX} $(shell pkg-config --libs --cflags x11 xrandr) -o $@ $<

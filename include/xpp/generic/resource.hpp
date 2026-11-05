@@ -53,28 +53,45 @@ class resource
       : m_c(c)
     {}
 
+    // Frees the resource on the server once the last reference is dropped.
+    // It owns its own copy of the connection (which keeps reference semantics
+    // if Connection is a reference type) and of the destroy functor, because
+    // it outlives both the local object and the arguments passed to make().
+    template<typename Destroy>
+    struct deleter {
+      Connection c;
+      Destroy destroy;
+
+      void
+      operator()(ResourceId * r)
+      {
+        try {
+          destroy(c, *r);
+        } catch (...) {
+          // never let an exception escape a deleter
+        }
+        delete r;
+      }
+    };
+
     template<typename C, typename Create, typename Destroy>
     static
     self
     make(C && c, Create create, Destroy destroy)
     {
-      self resource(std::forward<C>(c));
+      self resource(c);
 
-      auto xid = xcb_generate_id(std::forward<C>(c));
+      auto xid = xcb_generate_id(c);
 
-      // class create before instatiating the shared_ptr
+      // call create before instatiating the shared_ptr
       // create might fail and throw an error, hence shared_ptr would hold an
       // invalid xid, causing possibly another exception in destroy()
       // when create() throws, then the shared_ptr will not be created
-      create(std::forward<C>(c), xid);
+      create(c, xid);
 
       resource.m_resource =
         std::shared_ptr<ResourceId>(new ResourceId(xid),
-          [&](ResourceId * r)
-          {
-            destroy(resource.m_c, *r);
-            delete r;
-          });
+                                    deleter<Destroy>{ resource.m_c, destroy });
 
       return resource;
     }

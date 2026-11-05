@@ -1,6 +1,7 @@
 #ifndef X_VALUEPARAM_HPP
 #define X_VALUEPARAM_HPP
 
+#include <cstdint>
 #include <map>
 #include <vector>
 
@@ -12,28 +13,33 @@ class valueparam {
     set(const uint32_t & bit, const uint32_t & value)
     {
       m_has_changed = true;
+      m_mask |= bit;
       m_values_map[bit] = value;
       return *this;
     }
 
     uint32_t
-    mask(void)
+    mask(void) const
     {
       return m_mask;
     }
 
-    uint32_t * const
+    // The values are ordered by their bit, as required by the X protocol.
+    uint32_t *
     values(void)
     {
+      // Only rebuild the cache when something changed. Previously the values
+      // were appended on every call, so repeated calls grew the vector with
+      // duplicates.
       if (m_has_changed) {
         m_values.clear();
-      }
 
-      for (auto & item : m_values_map) {
-        m_values.push_back(item.second);
-      }
+        for (const auto & item : m_values_map) {
+          m_values.push_back(item.second);
+        }
 
-      m_has_changed = false;
+        m_has_changed = false;
+      }
 
       return m_values.data();
     }

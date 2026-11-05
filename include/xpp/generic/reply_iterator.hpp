@@ -1,9 +1,14 @@
 #ifndef XPP_GENERIC_REPLY_ITERATOR_HPP
 #define XPP_GENERIC_REPLY_ITERATOR_HPP
 
-#include <cstdlib> // size_t
+#include <cstddef> // std::size_t, std::ptrdiff_t
+#include <cstdlib>
+#include <iterator> // std::input_iterator_tag
 #include <memory>
 #include <stack>
+#include <string>
+#include <tuple> // std::tuple_element
+#include <type_traits>
 #include <xcb/xcb.h> // xcb_str_*
 #include "factory.hpp"
 #include "signature.hpp"
@@ -111,12 +116,15 @@ class iterator<Connection,
                xpp::generic::signature<NextTemplate, Next>,
                xpp::generic::signature<SizeOfTemplate, SizeOf>,
                xpp::generic::signature<GetIteratorTemplate, GetIterator>>
-  : public std::iterator<typename std::input_iterator_tag,
-                         Object,
-                         typename std::size_t,
-                         Object *,
-                         const Object &>
 {
+  public:
+    // std::iterator is deprecated since C++17, define the traits directly
+    using iterator_category = std::input_iterator_tag;
+    using value_type        = Object;
+    using difference_type   = std::size_t;
+    using pointer           = Object *;
+    using reference         = const Object &;
+
   protected:
     using self = iterator<Connection,
                           Object,
@@ -145,13 +153,13 @@ class iterator<Connection,
     {}
 
     bool
-    operator==(const iterator & other)
+    operator==(const iterator & other) const
     {
       return m_iterator.rem == other.m_iterator.rem;
     }
 
     bool
-    operator!=(const iterator & other)
+    operator!=(const iterator & other) const
     {
       return ! (*this == other);
     }
@@ -184,13 +192,18 @@ class iterator<Connection,
     self &
     operator--(void)
     {
-      typedef typename std::remove_pointer<decltype(m_iterator.data)>::type data_t;
-      if (m_lengths.empty()) {
-        data_t * data = m_iterator.data;
-        data_t * prev = data - m_lengths.top();
+      // m_lengths holds the size in bytes of every element which was skipped
+      // by operator++, so stepping back means moving by raw bytes.
+      // (The previous implementation inverted this check, which read from an
+      // empty stack, and did pointer arithmetic in units of the element type.)
+      if (! m_lengths.empty()) {
+        const std::size_t length = m_lengths.top();
         m_lengths.pop();
-        m_iterator.index = (char *)m_iterator.data - (char *)prev;
-        m_iterator.data = prev;
+        m_iterator.data = reinterpret_cast<decltype(m_iterator.data)>(
+            reinterpret_cast<char *>(m_iterator.data) - length);
+        // like xcb's *_next(), `index` holds the size of the element that was
+        // stepped over
+        m_iterator.index = static_cast<int>(length);
         ++m_iterator.rem;
       }
       return *this;
@@ -236,12 +249,15 @@ class iterator<Connection,
                Object,
                signature<AccessorTemplate, Accessor>,
                signature<LengthTemplate, Length>>
-  : public std::iterator<typename std::input_iterator_tag,
-                         Object,
-                         typename std::size_t,
-                         Object *,
-                         const Object &>
 {
+  public:
+    // std::iterator is deprecated since C++17, define the traits directly
+    using iterator_category = std::input_iterator_tag;
+    using value_type        = Object;
+    using difference_type   = std::size_t;
+    using pointer           = Object *;
+    using reference         = const Object &;
+
   protected:
 
     using accessor_traits = detail::function_traits<AccessorTemplate>;
@@ -279,12 +295,12 @@ class iterator<Connection,
       }
     }
 
-    bool operator==(const iterator & other)
+    bool operator==(const iterator & other) const
     {
       return m_index == other.m_index;
     }
 
-    bool operator!=(const iterator & other)
+    bool operator!=(const iterator & other) const
     {
       return ! (*this == other);
     }

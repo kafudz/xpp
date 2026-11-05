@@ -1,7 +1,7 @@
 #include <iostream>
 
-#include "../event.hpp"
-#include "../connection.hpp"
+#include <xpp/event.hpp>
+#include <xpp/connection.hpp>
 
 using namespace xpp;
 using namespace event;
