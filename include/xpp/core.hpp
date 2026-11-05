@@ -1,9 +1,12 @@
 #ifndef XPP_CORE_HPP
 #define XPP_CORE_HPP
 
+#include <cstdint>
+#include <cstdlib>
 #include <string>
 #include <memory>
 #include <stdexcept>
+#include <tuple>
 #include <xcb/xcb.h>
 
 namespace xpp {
@@ -19,13 +22,13 @@ class connection_error
     {}
 
     uint8_t
-    code(void)
+    code(void) const
     {
       return m_code;
     }
 
     std::string
-    description(void)
+    description(void) const
     {
       return m_description;
     }
@@ -49,8 +52,10 @@ class core
     {
       if (event) {
         if (event->response_type == 0) {
+          // xcb allocates events and errors with malloc(), hence they must be
+          // released with free() and not with the default deleter (delete)
           throw std::shared_ptr<xcb_generic_error_t>(
-              reinterpret_cast<xcb_generic_error_t *>(event));
+              reinterpret_cast<xcb_generic_error_t *>(event), std::free);
         }
 
         return shared_generic_event_ptr(event, std::free);
@@ -70,9 +75,11 @@ class core
     explicit
     core(xcb_connection_t * (*Connect)(ConnectionParameter ...),
                ConnectionParameter ... connection_parameter)
+      // The deleter must not capture `this`: copies of the shared_ptr (and
+      // therefore the connection) may outlive this core object.
       : m_c(std::shared_ptr<xcb_connection_t>(
           Connect(connection_parameter ...),
-          [&](void *) { disconnect(); }))
+          [](xcb_connection_t * c) { xcb_disconnect(c); }))
     {}
 
     // xcb_connect (const char *displayname, int *screenp)
@@ -197,7 +204,7 @@ class core
     request_check(xcb_void_cookie_t cookie) const
     {
       return std::shared_ptr<xcb_generic_error_t>(
-          xcb_request_check(m_c.get(), cookie));
+          xcb_request_check(m_c.get(), cookie), std::free);
     }
 
     virtual
@@ -261,9 +268,14 @@ class core
       char * host = NULL;
       std::string hostname;
 
-      xcb_parse_display(name.c_str(), &host, &display, &screen);
+      if (xcb_parse_display(name.c_str(), &host, &display, &screen) == 0) {
+        throw std::invalid_argument("invalid display name: " + name);
+      }
+
       if (host != NULL) {
         hostname = std::string(host);
+        // xcb_parse_display allocates the hostname with malloc()
+        std::free(host);
       }
 
       return std::make_tuple(hostname, display, screen);
@@ -277,7 +289,7 @@ class core
     }
 
     xcb_screen_t *
-    screen_of_display(int screen)
+    screen_of_display(int screen) const
     {
       xcb_screen_iterator_t iter;
 

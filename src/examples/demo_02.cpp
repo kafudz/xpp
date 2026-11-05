@@ -1,9 +1,9 @@
 #include <iostream>
 
-#include "../xpp.hpp"
-#include "../proto/randr.hpp"
-#include "../proto/damage.hpp"
-#include "../proto/render.hpp"
+#include <xpp/xpp.hpp>
+#include <xpp/proto/randr.hpp>
+#include <xpp/proto/damage.hpp>
+#include <xpp/proto/render.hpp>
 
 // typedefs for convenience
 namespace x {

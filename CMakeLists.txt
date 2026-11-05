@@ -149,7 +149,8 @@ file(GLOB PROTO_LIST_RAW RELATIVE ${XCBPROTO_XCBINCLUDEDIR} ${XCBPROTO_XCBINCLUD
 # Filter glob
 #
 foreach(PROTO_RAW ${PROTO_LIST_RAW})
-  string(REGEX REPLACE "(^xf86vidmode.xml|^ge.xml|.xml)\$" "" PROTO ${PROTO_RAW})
+  # the dots must be escaped, otherwise they match any character
+  string(REGEX REPLACE "(^xf86vidmode\\.xml|^ge\\.xml|\\.xml)\$" "" PROTO ${PROTO_RAW})
   if(PROTO AND "${PROTO}" IN_LIST XCB_PROTOS)
     message(STATUS "${PROJECT_NAME}: including xcb proto ${PROTO_RAW}")
     set(PROTO_LIST ${PROTO_LIST} ${PROTO})
@@ -162,13 +163,16 @@ endforeach(PROTO_RAW)
 set(PROTO_HEADER_DIR "${GEN_SRC}/include/xpp/proto")
 file(MAKE_DIRECTORY ${PROTO_HEADER_DIR})
 set(PROTO_HEADER_FILES "")
+# regenerate the headers whenever a generator script changes
+file(GLOB GENERATOR_SOURCES ${PROJECT_SOURCE_DIR}/generators/*.py)
 foreach(PROTO ${PROTO_LIST})
   string(REGEX REPLACE "proto\$" "" PROTO_OUTPUT ${PROTO})
   set(OUTPUT_FILE ${PROTO_HEADER_DIR}/${PROTO_OUTPUT}.hpp)
   add_custom_command(
     OUTPUT ${OUTPUT_FILE}
     COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/generators/cpp_client.py -p "${PYTHON_XCBGEN}"
-    ${XCBPROTO_XCBINCLUDEDIR}/${PROTO}.xml > ${OUTPUT_FILE})
+    ${XCBPROTO_XCBINCLUDEDIR}/${PROTO}.xml > ${OUTPUT_FILE}
+    DEPENDS ${GENERATOR_SOURCES} ${XCBPROTO_XCBINCLUDEDIR}/${PROTO}.xml)
   list(APPEND PROTO_HEADER_FILES ${OUTPUT_FILE})
 endforeach(PROTO)
 

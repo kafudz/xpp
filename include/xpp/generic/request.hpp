@@ -4,6 +4,7 @@
 #include <array>
 #include <memory>
 #include <cstdlib>
+#include <utility> // std::forward
 #include <xcb/xcb.h>
 #include "error.hpp"
 #include "signature.hpp"

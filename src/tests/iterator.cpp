@@ -1,6 +1,6 @@
 #include <iostream>
 
-#include "../connection.hpp"
+#include <xpp/connection.hpp>
 
 class test {
   public:

@@ -1,6 +1,7 @@
 #ifndef XPP_GENERIC_FACTORY_HPP
 #define XPP_GENERIC_FACTORY_HPP
 
+#include <type_traits> // std::conditional, std::is_constructible
 #include <utility> // std::forward
 
 namespace xpp { namespace generic {

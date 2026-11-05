@@ -2,7 +2,9 @@
 #define XPP_EVENT_HPP
 
 #include <climits>
+#include <cstdint>
 #include <map>
+#include <memory>
 #include <vector>
 #include <unordered_map>
 
@@ -138,7 +140,12 @@ class registry
     bool
     dispatch(const std::shared_ptr<xcb_generic_event_t> & event) const
     {
-      dispatch<Extension>(event);
+      // An event belongs to exactly one extension. Report whether it was
+      // handled by any of them (not just by the last one) and stop at the
+      // first dispatcher that accepted it.
+      if (dispatch<Extension>(event)) {
+        return true;
+      }
       return dispatch<Next, Rest ...>(event);
     }
 
@@ -187,12 +194,12 @@ class registry
       }
 
       auto & prio_map = it->second;
-      const auto & prio_sink_pair = prio_map.equal_range(p);
-      for (auto it = prio_sink_pair.first; it != prio_sink_pair.second; ) {
-        if (d == it->second) {
-          it = prio_map.erase(it);
+      const auto prio_sink_pair = prio_map.equal_range(p);
+      for (auto entry = prio_sink_pair.first; entry != prio_sink_pair.second; ) {
+        if (d == entry->second) {
+          entry = prio_map.erase(entry);
         } else {
-          ++it;
+          ++entry;
         }
       }
     }

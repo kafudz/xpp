@@ -12,10 +12,10 @@
 #include <X11/keysym.h>
 #include <X11/cursorfont.h> // XC_cross
 
-#include "../xpp.hpp"
-#include "../proto/randr.hpp"
-#include "../proto/damage.hpp"
-#include "../proto/render.hpp"
+#include <xpp/xpp.hpp>
+#include <xpp/proto/randr.hpp>
+#include <xpp/proto/damage.hpp>
+#include <xpp/proto/render.hpp>
 
 
 /*
