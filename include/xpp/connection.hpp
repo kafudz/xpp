@@ -47,7 +47,7 @@ class connection
       : xpp::core::core(std::forward<Parameters>(parameters) ...)
       , detail::interfaces<connection<Extensions ...>, Extensions ...>(*this)
       , Extensions(static_cast<xcb_connection_t *>(*this)) ...
-      , Extensions::error_dispatcher(static_cast<Extensions &>(*this).get()) ...
+      , Extensions::error_dispatcher(query_extension<Extensions>()) ...
     {
       m_root_window = lookup_root_window();
     }
@@ -124,6 +124,17 @@ class connection
 
   private:
     xcb_window_t m_root_window;
+
+    // Runs from the base initializers, i.e. before the constructor body can
+    // check the connection. A failed connection has no extension data, so
+    // report the connection error here instead of dereferencing null later.
+    template<typename Extension>
+    Extension &
+    query_extension(void)
+    {
+      check_connection();
+      return static_cast<Extension &>(*this).get();
+    }
 
     // Throws instead of dereferencing a null screen when the connection
     // failed or the requested screen does not exist.

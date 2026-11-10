@@ -4,6 +4,7 @@
 #include <array>
 #include <memory>
 #include <cstdlib>
+#include <stdexcept> // runtime_error
 #include <utility> // std::forward
 #include <xcb/xcb.h>
 #include "error.hpp"
@@ -71,16 +72,18 @@ class reply<Derived,
       return m_reply.operator bool();
     }
 
+    // xcb returns a null reply (without an error) when the connection broke
+    // down, so throw instead of dereferencing a null pointer.
     const Reply &
     operator*(void)
     {
-      return *get();
+      return *checked_reply();
     }
 
     Reply *
     operator->(void)
     {
-      return get().get();
+      return checked_reply().get();
     }
 
     const std::shared_ptr<Reply> &
@@ -104,6 +107,16 @@ class reply<Derived,
     Connection m_c;
     Cookie m_cookie;
     std::shared_ptr<Reply> m_reply;
+
+    const std::shared_ptr<Reply> &
+    checked_reply(void)
+    {
+      const std::shared_ptr<Reply> & reply = get();
+      if (! reply) {
+        throw std::runtime_error("no reply received (connection error?)");
+      }
+      return reply;
+    }
 
     std::shared_ptr<Reply>
     get(checked_tag)
