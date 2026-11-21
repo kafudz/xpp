@@ -48,30 +48,25 @@ set(XPP_LIBRARIES
   ${XCB_IMAGE_LIBRARY})
 
 #
-# Loop through a hardcoded list of python executables to locate the python module "xcbgen"
+# Locate the python module "xcbgen" with the interpreter that is also used to
+# run the generators (a different interpreter might see a different xcbgen).
 #
-# TODO drop python2 once ubuntu and debian ship python3-xcbgen in their
-# maintained distros
-foreach(CURRENT_EXECUTABLE ${PYTHON_EXECUTABLE} python3 python python2 python2.7)
-  message(STATUS "Searching for xcbgen with " ${CURRENT_EXECUTABLE})
+message(STATUS "Searching for xcbgen with ${PYTHON_EXECUTABLE}")
 
-  execute_process(COMMAND "${CURRENT_EXECUTABLE}" "-c"
-    "import re,xcbgen;print(re.compile('/xcbgen/__init__.py.*').sub('',xcbgen.__file__))"
-    RESULT_VARIABLE _xcbgen_status
-    OUTPUT_VARIABLE _xcbgen_location
-    ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
+execute_process(COMMAND "${PYTHON_EXECUTABLE}" "-c"
+  "import re,xcbgen;print(re.compile('/xcbgen/__init__.py.*').sub('',xcbgen.__file__))"
+  RESULT_VARIABLE _xcbgen_status
+  OUTPUT_VARIABLE _xcbgen_location
+  ERROR_QUIET OUTPUT_STRIP_TRAILING_WHITESPACE)
 
-  # When a shell script returns successfully its return code is 0
-  if(_xcbgen_status EQUAL 0)
-    set(PYTHON_XCBGEN "${_xcbgen_location}" CACHE STRING "Location of python module: xcbgen ")
-    message(STATUS "Found xcbgen in " ${PYTHON_XCBGEN})
-    break()
-  endif()
-
-endforeach(CURRENT_EXECUTABLE)
+if(_xcbgen_status EQUAL 0)
+  set(PYTHON_XCBGEN "${_xcbgen_location}" CACHE STRING "Location of python module: xcbgen ")
+  message(STATUS "Found xcbgen in " ${PYTHON_XCBGEN})
+endif()
 
 if(NOT PYTHON_XCBGEN)
-  message(FATAL_ERROR "Missing required python module: xcbgen")
+  message(FATAL_ERROR "Missing required python module: xcbgen "
+                      "(for ${PYTHON_EXECUTABLE}; pass -DPYTHON_EXECUTABLE=... to use another interpreter)")
 endif()
 
 #
@@ -171,7 +166,7 @@ foreach(PROTO ${PROTO_LIST})
   add_custom_command(
     OUTPUT ${OUTPUT_FILE}
     COMMAND ${PYTHON_EXECUTABLE} ${PROJECT_SOURCE_DIR}/generators/cpp_client.py -p "${PYTHON_XCBGEN}"
-    ${XCBPROTO_XCBINCLUDEDIR}/${PROTO}.xml > ${OUTPUT_FILE}
+    -o ${OUTPUT_FILE} ${XCBPROTO_XCBINCLUDEDIR}/${PROTO}.xml
     DEPENDS ${GENERATOR_SOURCES} ${XCBPROTO_XCBINCLUDEDIR}/${PROTO}.xml)
   list(APPEND PROTO_HEADER_FILES ${OUTPUT_FILE})
 endforeach(PROTO)

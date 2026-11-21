@@ -14,11 +14,6 @@ all: ${CPPSRCS}
 ${CPPSRCS}:
 	${CXX} ${CXXFLAGS} -o $(@:%.cpp=%) $@ ${LDLIBS}
 
-xlib-test: xlib-test.cpp
-	${CXX} $(shell pkg-config --libs --cflags x11 xrandr) -o $@ $<
-
-version:
-
 clean:
 	rm -f ${CPPSRCS:%.cpp=%}
 
