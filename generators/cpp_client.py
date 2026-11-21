@@ -3078,15 +3078,23 @@ output = {'open'          : c_open,
 
 # Check for the argument that specifies path to the xcbgen python package.
 try:
-    opts, args = getopt.getopt(sys.argv[1:], 'p:m')
+    opts, args = getopt.getopt(sys.argv[1:], 'p:o:m')
 except getopt.GetoptError as err:
-    print(err)
-    print('Usage: c_client.py [-p path] file.xml')
+    sys.stderr.write('%s\n' % err)
+    sys.stderr.write('Usage: cpp_client.py [-p path] [-o output] file.xml\n')
     sys.exit(1)
+
+if len(args) != 1:
+    sys.stderr.write('Usage: cpp_client.py [-p path] [-o output] file.xml\n')
+    sys.exit(1)
+
+output_file = None
 
 for (opt, arg) in opts:
     if opt == '-p':
         sys.path.insert(1, arg)
+    elif opt == '-o':
+        output_file = arg
     elif opt == '-m':
         manpaths = True
         sys.stdout.write('man_MANS = ')
@@ -3096,7 +3104,7 @@ try:
     from xcbgen.state import Module
     from xcbgen.xtypes import *
 except ImportError:
-    print('''
+    sys.stderr.write('''
 Failed to load the xcbgen Python package!
 Make sure that xcb/proto installed it on your Python path.
 If not, you will need to create a .pth file or define $PYTHONPATH
@@ -3105,21 +3113,41 @@ Refer to the README file in xcb/proto for more info.
 ''')
     raise
 
-# Ensure the man subdirectory exists
-try:
-    os.mkdir('man')
-except OSError as e:
-    if e.errno != errno.EEXIST:
-        raise
+# The man pages are only written when requested (-m)
+if manpaths:
+    try:
+        os.mkdir('man')
+    except OSError as e:
+        if e.errno != errno.EEXIST:
+            raise
 
 today = time.strftime('%Y-%m-%d', time.gmtime(os.path.getmtime(args[0])))
 
-# Parse the xml header
-module = Module(args[0], output)
+def generate():
+    # Parse the xml header
+    module = Module(args[0], output)
 
-# Build type-registry and resolve type dependencies
-module.register()
-module.resolve()
+    # Build type-registry and resolve type dependencies
+    module.register()
+    module.resolve()
 
-# Output the code
-module.generate()
+    # Output the code
+    module.generate()
+
+if output_file is None:
+    generate()
+else:
+    # Write to a temporary file and move it into place only on success, so a
+    # failing run can never leave a truncated header which the build would
+    # consider up to date.
+    tmp_file = output_file + '.tmp'
+    stdout = sys.stdout
+    try:
+        with open(tmp_file, 'w') as sys.stdout:
+            generate()
+        sys.stdout = stdout
+        os.replace(tmp_file, output_file)
+    finally:
+        sys.stdout = stdout
+        if os.path.exists(tmp_file):
+            os.remove(tmp_file)

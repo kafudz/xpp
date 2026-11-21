@@ -1,2 +1,4 @@
-Just a couple of experiments to try out concepts, language features, ideas.
-Might or might not compile, run or crash, etc.
+Small test programs for xpp. They need a running X server and the generated
+protocol headers (see the top level README).
+
+    make
